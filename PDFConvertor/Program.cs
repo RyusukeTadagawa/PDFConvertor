@@ -41,6 +41,18 @@ namespace PDFConvertor
             ExceptionOccur
         }
 
+        public enum ConvertMode
+        {
+            /// <summary>
+            /// シート単位でファイル作成
+            /// </summary>
+            PerSheet,
+            /// <summary>
+            /// すべてのシートを一ファイルで
+            /// </summary>
+            AllSheetOneFile
+        }
+
         /// <summary>
         /// メインメソッド
         /// </summary>
@@ -62,12 +74,24 @@ namespace PDFConvertor
 
                 var excelPath = args[0];
                 var outputDir = ExePath;
-                if(args.Length > 1)
+                var wConvertMode = ConvertMode.PerSheet;
+                if (args.Length > 1)
                 {
                     outputDir = args[1];
                 }
+                if (args.Length > 2)
+                {
+                    wConvertMode = (ConvertMode)Enum.Parse( typeof(ConvertMode),  args[2].ToString() ) ;
+                }
 
-                ConvertExcel2Pdf(excelPath, outputDir);
+                if( wConvertMode == ConvertMode.PerSheet)
+                {
+                    ConvertExcel2Pdf(excelPath, outputDir);
+                }
+                else if(wConvertMode == ConvertMode.AllSheetOneFile)
+                {
+                    ConvertExcel2PdfAllSheetOneFile(excelPath, outputDir);
+                }
                 return (int)ReturnCode.Normal;
 
             }
@@ -85,7 +109,34 @@ namespace PDFConvertor
         }
 
         /// <summary>
-        /// 指定のExcelファイルの全シートを指定のフォルダにPDFに変換する
+        /// 指定のExcelファイルの全シートを指定のフォルダに一つのPDFファイルとして変換する
+        /// </summary>
+        /// <param name="excelPath"></param>
+        /// <param name="outputDir"></param>
+        private static void ConvertExcel2PdfAllSheetOneFile(string excelPath, string outputDir)
+        {
+            // start excel and turn off msg boxes
+            Application excelApplication = new Application();
+            excelApplication.DisplayAlerts = false;
+
+
+            // add a new workbook
+            Workbook workBook = excelApplication.Workbooks.Open(excelPath);
+
+            var fileNameBase = Path.GetFileNameWithoutExtension(excelPath);
+            var pdfPath = Path.Combine(outputDir, fileNameBase + ".pdf");
+            //Console.WriteLine(pdfPath);
+            workBook.ExportAsFixedFormat(XlFixedFormatType.xlTypePDF, pdfPath, XlFixedFormatQuality.xlQualityStandard);
+
+            workBook.Close();
+
+            // close excel and dispose reference
+            excelApplication.Quit();
+            excelApplication.Dispose();
+        }
+
+        /// <summary>
+        /// 指定のExcelファイルの全シートを指定のフォルダにシートごとにPDFに変換する
         /// </summary>
         /// <param name="excelPath">Excelファイルパス</param>
         /// <param name="outputDir">出力フォルダパス</param>
